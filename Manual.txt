@@ -1,0 +1,113 @@
+# SecurePass — Open-Source Encrypted Password Manager
+
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Python](https://img.shields.io/badge/Python-3.11%2B-yellow)
+![Security](https://img.shields.io/badge/Encryption-AES--256--GCM-green)
+![Status](https://img.shields.io/badge/Status-Completed-success)
+
+**SecurePass** is a locally hosted, offline-first password manager built for the "Software Group Project 2025-26" at Charotar University of Science and Technology. It addresses the need for a transparent, secure, and affordable password solution for students and individuals.
+
+---
+
+## Key Features
+
+* **Military-Grade Encryption:**
+    * Uses **AES-256-GCM** for all password entries, ensuring both confidentiality and data integrity.
+    * **Argon2id** key derivation (KDF) with 3 iterations and 64MB memory cost protects the Master Password against brute-force attacks.
+    * Unique **Nonce (IV)** generated for every single entry to prevent pattern analysis.
+
+* **Real-Time Breach Detection (K-Anonymity):**
+    * Integrates with the **HaveIBeenPwned API** using the **K-Anonymity model**.
+    * Only the first 5 characters of the SHA-1 hash are sent to the server — the full password **never** leaves your machine.
+    * API responses are cached locally for 7 days to reduce network calls.
+
+* **Modern GUI:**
+    * Built with **CustomTkinter** for a responsive, dark-mode compatible interface.
+    * Includes "Smart Search" to filter credentials instantly.
+    * **Auto-Clear Clipboard:** Clears copied passwords from the clipboard after **15 seconds** to prevent shoulder-surfing.
+
+* **Brute-Force Protection:**
+    * After 3 failed login attempts, the vault locks out for **4 hours**.
+    * Auto-locks on inactivity after **3 minutes**.
+
+* **Password Generator:**
+    * Generates cryptographically secure passwords using Python's `secrets` module.
+    * Live strength meter shows password quality in real time.
+
+---
+
+## Technology Stack
+
+| Component       | Technology Used                                    |
+|-----------------|----------------------------------------------------|
+| **Language**    | Python 3.11+                                       |
+| **GUI**         | CustomTkinter                                      |
+| **Cryptography**| `cryptography` (AES-256-GCM, Argon2id via Hazmat) |
+| **Database**    | SQLite3 (Encrypted storage schema)                 |
+| **Breach API**  | HaveIBeenPwned (via urllib, k-Anonymity)           |
+| **Packaging**   | PyInstaller (Single executable build)              |
+
+---
+
+## Installation & Usage
+
+### Run from Source
+
+1. **Clone the repository:**
+    ```bash
+    git clone https://github.com/yourusername/securepass.git
+    cd securepass
+    ```
+2. **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+3. **Run the application:**
+    ```bash
+    cd src
+    python gui.py
+    ```
+
+> **Note:** Your vault database is stored at `~/.securepass/s_pass.db`. Keep this file safe — if you lose your Master Password, your vault is mathematically unrecoverable.
+
+---
+
+## Security Architecture
+
+### 1. Zero-Knowledge Architecture
+SecurePass operates on a "Zero-Knowledge" basis. The Master Password is **never stored** anywhere. Only the **Argon2id-derived key** is held in memory during the session. If you forget your Master Password, your data is permanently unrecoverable.
+
+### 2. Encryption Pipeline
+```
+Master Password
+      │
+      ▼ Argon2id (salt=random 16B, iterations=3, memory=64MB)
+  AES-256 Key (in-memory only)
+      │
+      ▼ AES-256-GCM (nonce=random 12B per entry)
+  Ciphertext + Auth Tag → stored in SQLite
+```
+
+### 3. Database Schema
+Data is stored using the following structure:
+* **`config` Table:** Stores the Argon2id salt, a GCM-encrypted auth verifier, lockout state, and app settings.
+* **`entries` Table:** Stores `ciphertext`, `nonce`, `website`, `username`, and `context` (notes).
+* **`breach_cache` Table:** Caches HIBP API responses locally for 7 days.
+
+### 4. Known Limitations
+* The lockout counter is stored in the local SQLite database. A user with physical access to the DB file could theoretically reset it. This is a known limitation of local-only password managers without OS-level keychain integration.
+
+---
+
+## The Team
+
+**Devang Patel Institute of Advanced Technology and Research**
+
+* **Team Leader:** Mahale Uday (24DCS046) — *Backend & Security Logic*
+* **Team Member:** Maniya Jay (24DCS050) — *Frontend GUI & Database*
+* **Team Member:** Arpit Pandya (24DCS066) — *Testing & Documentation*
+
+---
+
+## License
+This project is for educational purposes under the "Software Group Project 2025-26" course. Open source under the MIT License.

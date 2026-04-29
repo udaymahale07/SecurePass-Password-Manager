@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual Environments
+venv/
+venvclear/
+env/
+.env/
+
+# Database (user data — never commit this)
+*.db
+*.sqlite3
+.securepass/
+
+# PyInstaller
+*.spec
+dist/
+build/
+
+# IDE / OS files
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

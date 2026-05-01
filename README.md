@@ -38,10 +38,6 @@ SecurePass is a secure, local, offline password manager built with Python and Cu
    ```
    *(Note: if `main.py` is called `app.py`, use `python app.py`)*
 
-## 🛡️ Security Note
-
-This is a local password manager. **DO NOT** commit your `s_pass.db` file to GitHub or any public repository. A `.gitignore` file is already included in this repository to prevent the database from being uploaded accidentally.
-
 ## 🛠️ Built With
 
 - **Python 3.10+**

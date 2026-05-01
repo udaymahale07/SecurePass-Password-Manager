@@ -8,23 +8,35 @@ import time
 
 class SecurityEngine:
     @staticmethod
-    def generate_secure_password(length=16):
+    def generate_secure_password(length=16, upper=True, lower=True, nums=True, syms=True):
         """Generates a highly secure random password."""
-        if length < 12:
-            length = 12
+        if length < 4:
+            length = 4
 
-        characters = string.ascii_letters + string.digits + "!@#$%^&*()_+-="
-        password = [
-            secrets.choice(string.ascii_uppercase),
-            secrets.choice(string.digits),
-            secrets.choice("!@#$%^&*"),
-            secrets.choice(string.ascii_lowercase)
-        ]
+        characters = ""
+        password = []
+
+        if upper:
+            characters += string.ascii_uppercase
+            password.append(secrets.choice(string.ascii_uppercase))
+        if lower:
+            characters += string.ascii_lowercase
+            password.append(secrets.choice(string.ascii_lowercase))
+        if nums:
+            characters += string.digits
+            password.append(secrets.choice(string.digits))
+        if syms:
+            characters += "!@#$%^&*()_+-="
+            password.append(secrets.choice("!@#$%^&*()_+-="))
+            
+        if not characters:
+            return ""
+
         while len(password) < length:
             password.append(secrets.choice(characters))
 
         secrets.SystemRandom().shuffle(password)
-        return ''.join(password)
+        return ''.join(password)[:length]
 
     @staticmethod
     def evaluate_password_strength(password: str):

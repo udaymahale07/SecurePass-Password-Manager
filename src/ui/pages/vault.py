@@ -40,29 +40,23 @@ class VaultPage(ctk.CTkFrame):
         stats.grid(row=1, column=0, sticky="ew", padx=35, pady=(18, 16))
         stats.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
-        self.lbl_total    = self._stat_card(stats, 0, "Total Passwords", "0",   GOLD,       "\u272a")
-        self.lbl_breached = self._stat_card(stats, 1, "Exposed",         "0",   RED_DANGER, "\u26a0")
-        self.lbl_reused   = self._stat_card(stats, 2, "Reused",          "0",   AMBER,      "\u29b0")
-        self.lbl_health   = self._stat_card(stats, 3, "Vault Health",    "Good",GREEN_OK,   "\u2713")
+        self.lbl_total    = self._stat_card(stats, 0, "Total Passwords", "0",   GOLD,       "total password and lock.png")
+        self.lbl_breached = self._stat_card(stats, 1, "Exposed",         "0",   RED_DANGER, "exposed.png")
+        self.lbl_reused   = self._stat_card(stats, 2, "Reused",          "0",   AMBER,      "reused.png")
+        self.lbl_health   = self._stat_card(stats, 3, "Vault Health",    "Good",GREEN_OK,   "vaulthealth.png")
 
         # ── Search + Sort + Filter row ───────────────────────
         ctrl_row = ctk.CTkFrame(self, fg_color="transparent")
         ctrl_row.grid(row=2, column=0, sticky="ew", padx=35, pady=(0, 10))
         ctrl_row.grid_columnconfigure(0, weight=1)
 
-        wrap = ctk.CTkFrame(ctrl_row, fg_color=CARD, corner_radius=10,
-                            border_width=2, border_color=BORDER_BRIGHT)
-        wrap.grid(row=0, column=0, sticky="ew", pady=(0, 8))
-        wrap.grid_columnconfigure(0, weight=1)
-
-        self.search_var = ctk.StringVar()
-        se = ctk.CTkEntry(wrap, textvariable=self.search_var,
-                          placeholder_text="  Search by website or username...",
-                          height=52, fg_color="transparent", border_width=0,
-                          text_color=TEXT_1, placeholder_text_color=TEXT_3,
+        self.search_entry = ctk.CTkEntry(ctrl_row,
+                          placeholder_text="Search by website or username...",
+                          height=46, fg_color=CARD, border_width=1, border_color=BORDER_BRIGHT,
+                          corner_radius=10, text_color=TEXT_1, placeholder_text_color=TEXT_3,
                           font=("Helvetica", 14))
-        se.grid(row=0, column=0, sticky="ew", padx=(8, 12))
-        se.bind("<KeyRelease>", lambda _e: self.refresh_list(self.search_var.get()))
+        self.search_entry.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        self.search_entry.bind("<KeyRelease>", lambda _e: self.refresh_list())
 
         # Sort + Category filter
         filter_bar = ctk.CTkFrame(ctrl_row, fg_color="transparent")
@@ -75,7 +69,7 @@ class VaultPage(ctk.CTkFrame):
                           width=160, height=34, fg_color=CARD, button_color=BORDER,
                           button_hover_color=CARD_HOVER, text_color=TEXT_1,
                           font=("Helvetica", 13),
-                          command=lambda _: self.refresh_list(self.search_var.get())
+                          command=lambda _: self.refresh_list()
                           ).pack(side="left", padx=(0, 20))
 
         ctk.CTkLabel(filter_bar, text="Category:", font=("Helvetica", 13, "bold"),
@@ -86,7 +80,7 @@ class VaultPage(ctk.CTkFrame):
                           width=150, height=34, fg_color=CARD, button_color=BORDER,
                           button_hover_color=CARD_HOVER, text_color=TEXT_1,
                           font=("Helvetica", 13),
-                          command=lambda _: self.refresh_list(self.search_var.get())
+                          command=lambda _: self.refresh_list()
                           ).pack(side="left")
 
         # ── Vault list ───────────────────────────────────────
@@ -96,6 +90,32 @@ class VaultPage(ctk.CTkFrame):
         self.scroll_frame.grid(row=3, column=0, sticky="nsew", padx=35, pady=(0, 20))
 
         self.refresh_list()
+
+    def _load_colored_icon(self, filename, hex_color):
+        import os
+        from PIL import Image
+        base_dir = os.path.dirname(__file__)
+        path = os.path.normpath(os.path.join(base_dir, "..", "..", "..", "assets", filename))
+        
+        if os.path.exists(path):
+            pil_img = Image.open(path).convert("RGBA")
+            data = pil_img.getdata()
+            new_data = []
+            h = hex_color.lstrip('#') if isinstance(hex_color, str) else "FFFFFF"
+            if len(h) == 6:
+                r, g, b = tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+            else:
+                r, g, b = 255, 255, 255
+                
+            for item in data:
+                if item[3] > 0:
+                    new_data.append((r, g, b, item[3]))
+                else:
+                    new_data.append(item)
+            pil_img.putdata(new_data)
+            pil_img = pil_img.resize((24, 24), Image.LANCZOS)
+            return ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(24, 24))
+        return None
 
     def _stat_card(self, parent, col, title, value, color, icon):
         pad_l = 0 if col == 0 else 8
@@ -110,14 +130,24 @@ class VaultPage(ctk.CTkFrame):
 
         icon_bg = ctk.CTkFrame(card, fg_color=CARD_HOVER, width=42, height=42, corner_radius=10)
         icon_bg.place(x=18, rely=0.5, anchor="w")
-        ctk.CTkLabel(icon_bg, text=icon, font=("Helvetica", 16, "bold"), text_color=color).place(relx=0.5, rely=0.5, anchor="center")
+        
+        img = None
+        if icon.endswith(".png"):
+            img = self._load_colored_icon(icon, color)
+            
+        if img:
+            ctk.CTkLabel(icon_bg, text="", image=img).place(relx=0.5, rely=0.5, anchor="center")
+        else:
+            ctk.CTkLabel(icon_bg, text=icon, font=("Helvetica", 16, "bold"), text_color=color).place(relx=0.5, rely=0.5, anchor="center")
 
         ctk.CTkLabel(card, text=title, font=("Helvetica", 14, "bold"), text_color=TEXT_2).place(x=76, y=22)
         lbl = ctk.CTkLabel(card, text=value, font=("Georgia", 28, "bold"), text_color=TEXT_1)
         lbl.place(x=76, y=50)
         return lbl
 
-    def refresh_list(self, search_query: str = ""):
+    def refresh_list(self, search_query: str = None):
+        if search_query is None:
+            search_query = self.search_entry.get() if hasattr(self, 'search_entry') else ""
         for w in self.scroll_frame.winfo_children():
             w.destroy()
 
@@ -226,22 +256,28 @@ class VaultPage(ctk.CTkFrame):
         pwd_lbl = ctk.CTkLabel(pwd_container, textvariable=pwd_var, font=FONT_MONO, text_color=GOLD)
         pwd_lbl.pack(side="left", padx=12, pady=8)
 
+        eye_img = self._load_colored_icon("eye.png", GOLD)
+        eye_off_img = self._load_colored_icon("eye-off.png", GOLD)
+
         def _toggle(r=row, var=pwd_var, lbl=pwd_lbl):
             if var.get().startswith("•"):
                 try:
                     dec = self.app.crypto.decrypt_data(r["ciphertext"], r["nonce"])
                     var.set(dec)
                     lbl.configure(text_color=TEXT_1)
+                    eye_btn.configure(image=eye_off_img)
                 except Exception:
                     var.set("Decryption failed")
                     lbl.configure(text_color=RED_DANGER)
             else:
                 var.set("••••••••••••")
                 lbl.configure(text_color=GOLD)
+                eye_btn.configure(image=eye_img)
 
-        ctk.CTkButton(pwd_container, text="👁", width=30, height=30,
+        eye_btn = ctk.CTkButton(pwd_container, text="", width=30, height=30, image=eye_img,
                       fg_color="transparent", text_color=TEXT_2,
-                      hover_color=BORDER, command=_toggle).pack(side="left", padx=(0, 8))
+                      hover_color=BORDER, command=_toggle)
+        eye_btn.pack(side="left", padx=(0, 8))
 
         # Reused badge
         if is_reused:
@@ -355,17 +391,20 @@ class VaultPage(ctk.CTkFrame):
                               font=FONT_BODY, text_color=TEXT_1)
         pass_e.grid(row=0, column=0, sticky="ew", padx=(10, 0))
 
-        # 👁 eye button sits inside the box on the right
+        eye_img = self._load_colored_icon("eye.png", GOLD)
+        eye_off_img = self._load_colored_icon("eye-off.png", GOLD)
+
         def _toggle_pass():
             if pass_e.cget("show") == "*":
                 pass_e.configure(show="")
+                eye_btn.configure(image=eye_off_img)
             else:
                 pass_e.configure(show="*")
+                eye_btn.configure(image=eye_img)
 
-        eye_btn = ctk.CTkButton(pass_box, text="👁", width=36, height=36,
+        eye_btn = ctk.CTkButton(pass_box, text="", width=36, height=36, image=eye_img,
                                 fg_color="transparent", hover_color=BORDER,
                                 text_color=TEXT_2, corner_radius=6,
-                                font=("Helvetica", 15),
                                 command=_toggle_pass)
         eye_btn.grid(row=0, column=1, padx=(0, 4))
         # ───────────────────────────────────────────────────────────────
@@ -408,7 +447,7 @@ class VaultPage(ctk.CTkFrame):
             pass_e.delete(0, "end")
             pass_e.insert(0, pwd)
             pass_e.configure(show="*")
-            eye_btn.configure(text="\u25cb")
+            eye_btn.configure(image=eye_img)
             sb.update_strength(pwd)
 
         ctk.CTkButton(win, text="Generate Strong Password",
@@ -453,7 +492,7 @@ class VaultPage(ctk.CTkFrame):
             else:
                 self.app.db.add_entry(site, user, cipher, nonce, context=ctx, category=cat)
 
-            self.refresh_list(self.search_var.get())
+            self.refresh_list()
             win.destroy()
             Toast(self.app, "Entry saved to vault.", "success")
 
